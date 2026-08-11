@@ -26,26 +26,28 @@ jobs:
 
       - name: System vorbereiten und Compiler installieren
         run: |
-          sudo dpkg --add-architecture i386
           sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get -y install \
             locales pv cpio rsync kmod imagemagick inkscape graphicsmagick subversion git bc unar wget sudo gcc g++ binutils autoconf automake \
-            autopoint libtool-bin make bzip2 libncurses-dev libreadline-dev zlib1g-dev flex bison patch texinfo gettext pkg-config ecj \
+            autopoint libtool-bin make bzip2 libreadline-dev zlib1g-dev flex bison patch texinfo gettext pkg-config ecj \
             perl libstring-crc32-perl ruby gawk libusb-dev unzip intltool libacl1-dev libcap-dev libc6-dev-i386 \
-            libncurses-dev:i386 gcc-multilib bsdmainutils lib32stdc++6 libglib2.0-dev ccache cmake lib32z1-dev libsqlite3-dev sqlite3 libzstd-dev \
+            libelf-dev libncurses-dev gcc-multilib bsdmainutils lib32stdc++6 libglib2.0-dev ccache cmake lib32z1-dev libsqlite3-dev sqlite3 libzstd-dev \
             netcat-openbsd curl uuid-dev libssl-dev libgnutls28-dev u-boot-tools device-tree-compiler
 
       - name: Spracheinstellungen einrichten
-        run: sudo locale-gen en_US.utf8 && sudo locale-gen de_DE.UTF-8 && sudo update-locale
+        run: |
+          sudo locale-gen en_US.utf8 && sudo locale-gen de_DE.UTF-8
+          sudo update-locale LANG=de_DE.UTF-8
 
       - name: Eigene .config einspielen
         run: |
+          mkdir -p images
           echo "${{ secrets.ACTIONS_FREETZ }}" > .config
           make oldconfig
 
       - name: Firmware kompilieren
         run: |
-          make && rm -f images/latest.image
+          make
 
       - name: Ergebnis anzeigen
         run: |
@@ -58,9 +60,9 @@ jobs:
         run: |
           LAST_FILE="$(ls images/*.image | head -n 1 | xargs basename)"
           NAME_FILE="$(echo "$LAST_FILE" | sed 's,_[0-9]*,,;s,\.image,,')"
-          echo "last=$LAST_FILE" >> $GITHUB_OUTPUT
-          echo "name=$NAME_FILE" >> $GITHUB_OUTPUT
-          test -n "$NAME_FILE"
+          echo "last=${LAST_FILE}" >> $GITHUB_OUTPUT
+          echo "name=${NAME_FILE}" >> $GITHUB_OUTPUT
+          test -n "${NAME_FILE}"
 
       - name: Firmware als Release hochladen
         uses: ncipollo/release-action@v1
