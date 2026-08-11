@@ -45,13 +45,15 @@ jobs:
           echo "FREETZ_SERIES_4=y" >> .config
           echo "FREETZ_TYPE_7490=y" >> .config
           echo "FREETZ_TARGET_IPV6_SUPPORT=y" >> .config
+          
+          # 2. Die absolut stabile Firmware-Schiene erzwingen (Verhindert 07.62 Inhaus-Sperren)
           echo "FREETZ_TYPE_FIRMWARE_07_5X=y" >> .config
+          echo "FREETZ_AVM_SOURCE_7490_07_56=y" >> .config
           
-          # 2. DIE WAHREN GENERALSCHLÜSSEL (Hebt die Freetz-NG Quellcode-Sperren auf)
+          # 3. Kernel-Ersatz aktivieren (wichtig für IPv6-NAT Module)
           echo "FREETZ_REPLACE_KERNEL=y" >> .config
-          echo "FREETZ_PACKAGE_DNSMASQ_AUTO_DISABLE=n" >> .config
           
-          # 3. Freetz-Userland-Pakete aktivieren
+          # 4. Freetz-Userland-Pakete für das NAT66-Projekt aktivieren
           echo "FREETZ_PACKAGE_DNSMASQ=y" >> .config
           echo "FREETZ_PACKAGE_DNSMASQ_WITH_DHCP=y" >> .config
           echo "FREETZ_PACKAGE_DNSMASQ_WITH_IPV6=y" >> .config
@@ -60,13 +62,13 @@ jobs:
           echo "FREETZ_PACKAGE_IPTABLES_MOD_CONNTRACK_EXTRA=y" >> .config
           echo "FREETZ_PACKAGE_IPTABLES_MOD_NAT_EXTRA=y" >> .config
           
-          # 4. Compiler-Bibliotheken (Shared Libraries) miterzwingen
+          # 5. Zwingende Compiler-Bibliotheken für den Bau miterzwingen
           echo "FREETZ_LIB_libusb0=y" >> .config
           echo "FREETZ_LIB_libusb1=y" >> .config
           echo "FREETZ_LIB_libcrypto=y" >> .config
           echo "FREETZ_OPENSSL_VERSION_35=y" >> .config
 
-          # 5. Kernel-Optionen für NAT66 in alle Kernel-Templates injizieren
+          # 6. Kernel-Optionen für NAT66 als ladbares Modul (=m) in alle Kernel-Templates injizieren
           find kernel/config/ -type f -name "*.config" | while read -r config_file; do
             echo "CONFIG_IP6_NF_IPTABLES=m" >> "$config_file"
             echo "CONFIG_IP6_NF_MATCH_HL=m" >> "$config_file"
@@ -77,19 +79,20 @@ jobs:
             echo "CONFIG_NF_CONNTRACK_IPV6=m" >> "$config_file"
           done
           
-          # EINZIGER DURCHLAUF: Das System berechnet die Abhängigkeiten nun ohne Sperren
+          # EINZIGER DURCHLAUF: Das System baut den gesamten Abhängigkeitsbaum fehlerfrei auf
           make olddefconfig
           
-          # 6. Kompakte Bildschirmausgabe zur Kontrolle
+          # 7. Kompakte Bildschirmausgabe zur Kontrolle
           echo -e "\n================ KOPPIEREN FUER DEN CHAT AB HIER ================"
           grep -E "7490|IPV6|DNSMASQ|IPTABLES|NETFILTER|FREETZ_MODULES|REPLACE_KERNEL" .config
           echo -e "================ KOPPIEREN FUER DEN CHAT BIS HIER ================\n"
           
-          # 7. Sicherheitsprüfung gegen unvollständigen Reset auf die Standard-7690
+          # 8. Sicherheitsprüfung gegen unvollständigen Reset auf die Standard-7690
           if grep -q "FREETZ_TYPE_7690=y" .config; then
             echo "FEHLER: Konfiguration wurde von Freetz verworfen und auf Standard (7690) zurückgesetzt!"
             exit 1
           fi
+
 
       - name: Firmware kompilieren
         run: |
