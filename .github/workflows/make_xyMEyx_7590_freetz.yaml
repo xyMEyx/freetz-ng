@@ -1,4 +1,4 @@
-name: Build_FritzBox_7490_einLauf
+name: Build_FritzBox_7490_einDurchlauf
 
 on:
   workflow_dispatch:
@@ -45,7 +45,7 @@ jobs:
           echo "check_certificate = off" >> ~/.wgetrc
           
           # =================================================================
-          # STUFE 1: Hardware-Basis und ALLE primären Türöffner schreiben
+          # STUFE 1: Hardware-Basis und primäre Türöffner schreiben
           # =================================================================
           echo "FREETZ_USER_LEVEL_EXPERT=y" > .config
           echo "FREETZ_SERIES_4=y" >> .config
@@ -55,20 +55,20 @@ jobs:
           echo "FREETZ_REPLACE_KERNEL=y" >> .config
           
           # =================================================================
-          # STUFE 2: Die Paketwünsche und "Über-Türöffner" direkt mitgeben
-          # Wir setzen FREETZ_PACKAGE_DNSMASQ_AUTO_DISABLE=n DIREKT beim Start.
-          # Das verbietet olddefconfig das automatische Kastrieren des Pakets!
+          # STUFE 2: DIE ENTSCHEIDENDEN COMMUNITY-TÜRÖFFNER
+          # FREETZ_PACKAGE_DNSMASQ_NATIVE hebt die internen DHCP-Sperren auf!
           # =================================================================
           echo "FREETZ_PACKAGE_DNSMASQ=y" >> .config
+          echo "FREETZ_PACKAGE_DNSMASQ_NATIVE=y" >> .config
           echo "FREETZ_PACKAGE_DNSMASQ_WITH_DHCP=y" >> .config
           echo "FREETZ_PACKAGE_DNSMASQ_WITH_IPV6=y" >> .config
-          echo "FREETZ_PACKAGE_DNSMASQ_AUTO_DISABLE=n" >> .config
           
-          # iptables und Erweiterungen für NAT66 erzwingen
+          # Iptables-Infrastruktur im Freetz-Userland erzwingen
           echo "FREETZ_PACKAGE_IPTABLES=y" >> .config
           echo "FREETZ_PACKAGE_IPTABLES_MOD_IP6TABLES=y" >> .config
           echo "FREETZ_PACKAGE_IPTABLES_MOD_CONNTRACK_EXTRA=y" >> .config
           echo "FREETZ_PACKAGE_IPTABLES_MOD_NAT_EXTRA=y" >> .config
+          echo "FREETZ_SHARE_xtables=y" >> .config
           
           # Zwingende Compiler-Bibliotheken (Shared Libraries) miterzwingen
           echo "FREETZ_LIB_libusb0=y" >> .config
@@ -81,7 +81,6 @@ jobs:
           # =================================================================
           find . -type f -name "*config*" | grep -E "make/linux|toolchain|target/kernel" | while read -r config_file; do
             if [ "$config_file" != "./.config" ]; then
-              echo "=> Impfe gefundene Kernel-Datei: $config_file"
               sed -i '/CONFIG_IP6_NF_/d' "$config_file"
               sed -i '/CONFIG_NF_CONNTRACK_IPV6/d' "$config_file"
               
@@ -95,9 +94,9 @@ jobs:
             fi
           done
           
-          # EINZIGER DURCHLAUF: Das System berechnet nun alle Abhängigkeiten fehlerfrei.
-          # Da AUTO_DISABLE=n und REPLACE_KERNEL von Anfang an in der Datei stehen,
-          # darf olddefconfig die Pakete nicht mehr anfassen oder deaktivieren!
+          # EINZIGER DURCHLAUF: Das System berechnet die Abhängigkeiten nun fehlerfrei.
+          # Da DNSMASQ_NATIVE=y von Anfang an gesetzt ist, darf olddefconfig die 
+          # Sperren DISABLE_DHCP und DISABLE_DNS gar nicht erst generieren!
           make olddefconfig
           
           # 6. Kompakte Bildschirmausgabe zur Kontrolle
