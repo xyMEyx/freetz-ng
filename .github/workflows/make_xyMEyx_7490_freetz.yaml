@@ -73,33 +73,33 @@ jobs:
             fi
           done
           
-          # Erster Durchlauf: Generiert das vollständige Grundgerüst (3000 Zeilen)
+          # Erster Durchlauf: Generiert das vollständige, valide Grundgerüst (3000 Zeilen)
           make olddefconfig
           
           # =================================================================
           # STUFE 3: Präzises In-Place-Umbiegen auf die korrekten Wunschwerte
-          # Wir nutzen deinen Vorschlag (=n) und bereinigen gleichzeitig alle Duplikate!
+          # Wir schalten die Bremsen syntaktisch korrekt via 'is not set' aus!
           # =================================================================
           
-          # 1. Die harten Bremsen explizit und knallhart auf "n" setzen
-          sed -i 's/FREETZ_PACKAGE_DNSMASQ_DISABLE_DHCP=y/FREETZ_PACKAGE_DNSMASQ_DISABLE_DHCP=n/' .config
-          sed -i 's/FREETZ_PACKAGE_DNSMASQ_DISABLE_DNS=y/FREETZ_PACKAGE_DNSMASQ_DISABLE_DNS=n/' .config
+          # 1. Die harten Bremsen aus dem Log sauber auskommentieren (Invertierte Logik!)
+          sed -i 's/FREETZ_PACKAGE_DNSMASQ_DISABLE_DHCP=y/# FREETZ_PACKAGE_DNSMASQ_DISABLE_DHCP is not set/' .config
+          sed -i 's/FREETZ_PACKAGE_DNSMASQ_DISABLE_DNS=y/# FREETZ_PACKAGE_DNSMASQ_DISABLE_DNS is not set/' .config
           
           # Entzieht dem Freetz-Kern das Recht, dnsmasq automatisch stillzulegen
-          sed -i 's/FREETZ_PACKAGE_DNSMASQ_AUTO_DISABLE=y/FREETZ_PACKAGE_DNSMASQ_AUTO_DISABLE=n/' .config
+          sed -i 's/FREETZ_PACKAGE_DNSMASQ_AUTO_DISABLE=y/# FREETZ_PACKAGE_DNSMASQ_AUTO_DISABLE is not set/' .config
           
           # 2. Hauptpakete direkt in ihrer Zeile von "not set" auf aktiv (=y) umbiegen
           sed -i 's/# FREETZ_PACKAGE_DNSMASQ is not set/FREETZ_PACKAGE_DNSMASQ=y/' .config
           sed -i 's/# FREETZ_PACKAGE_IPTABLES is not set/FREETZ_PACKAGE_IPTABLES=y/' .config
           
-          # 3. Unteroptionen direkt in ihren Zeilen scharf schalten (keine Echos mehr!)
+          # 3. Unteroptionen direkt in ihren Zeilen scharf schalten
           sed -i 's/# FREETZ_PACKAGE_DNSMASQ_WITH_DHCP is not set/FREETZ_PACKAGE_DNSMASQ_WITH_DHCP=y/' .config
           sed -i 's/# FREETZ_PACKAGE_DNSMASQ_WITH_IPV6 is not set/FREETZ_PACKAGE_DNSMASQ_WITH_IPV6=y/' .config
           sed -i 's/# FREETZ_PACKAGE_IPTABLES_MOD_IP6TABLES is not set/FREETZ_PACKAGE_IPTABLES_MOD_IP6TABLES=y/' .config
           sed -i 's/# FREETZ_PACKAGE_IPTABLES_MOD_CONNTRACK_EXTRA is not set/FREETZ_PACKAGE_IPTABLES_MOD_CONNTRACK_EXTRA=y/' .config
           sed -i 's/# FREETZ_PACKAGE_IPTABLES_MOD_NAT_EXTRA is not set/FREETZ_PACKAGE_IPTABLES_MOD_NAT_EXTRA=y/' .config
           
-          # 4. Shared Libraries direkt an Ort und Stelle aktivieren (Beseitigt die "override"-Warnungen)
+          # 4. Shared Libraries direkt an Ort und Stelle aktivieren (Beseitigt alle Konflikte)
           sed -i 's/# FREETZ_LIB_libusb0 is not set/FREETZ_LIB_libusb0=y/' .config
           sed -i 's/# FREETZ_LIB_libusb1 is not set/FREETZ_LIB_libusb1=y/' .config
           sed -i 's/# FREETZ_LIB_libcrypto is not set/FREETZ_LIB_libcrypto=y/' .config
