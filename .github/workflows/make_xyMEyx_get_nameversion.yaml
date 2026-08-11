@@ -13,30 +13,31 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Tiefenanalyse der neuen Freetz-Struktur
+      - name: Komprimierte Datenabfrage
         run: |
           mkdir -p output
           {
-            echo "=== ECHTE FREETZ-NG MODELL-VARIABLEN (2026) ==="
-            echo "1. Suche nach Hardware-Definitionen im config-Ordner:"
-            echo "--------------------------------------------------------"
-            if [ -d "config" ]; then
-              grep -r -E "config FREETZ_TYPE_7490|config FREETZ_TYPE_7590" config/ || echo "Keine exakten Treffer in config/"
+            echo "7490"
+            echo "FREETZ_TYPE_7490=y"
+            echo "Firmware"
+            if grep -q "FREETZ_TYPE_FIRMWARE_07_5X" config/ui/firmware.in; then
+              echo "FREETZ_TYPE_FIRMWARE_07_5X=y"
             else
-              echo "Ordner 'config' existiert nicht!"
+              echo "FREETZ_TYPE_FIRMWARE_07_5X nicht gefunden"
             fi
-            echo "--------------------------------------------------------"
-            echo "2. Inhalt der zentralen Firmware-Menüdatei (Auszug):"
-            echo "--------------------------------------------------------"
-            if [ -f "config/ui/firmware.in" ]; then
-              grep -E "bool \"FRITZ\!Box" config/ui/firmware.in | grep -E "7490|7590" || echo "Boxen nicht im UI-Menue gefunden"
+            echo ""
+            echo "7590"
+            if grep -q "FREETZ_TYPE_7590_W5" config/ui/firmware.in; then
+              echo "FREETZ_TYPE_7590_W5=y"
             else
-              echo "config/ui/firmware.in existiert nicht!"
+              echo "FREETZ_TYPE_7590_W5 nicht gefunden"
             fi
-            echo "--------------------------------------------------------"
-            echo "3. Gueltige Firmware-Linien im Projekt:"
-            echo "--------------------------------------------------------"
-            grep -r -m 5 "FREETZ_TYPE_FIRMWARE_" config/ || echo "Keine Firmware-Typen gefunden"
+            echo "Firmware"
+            if grep -q "FREETZ_TYPE_FIRMWARE_08_2X" config/ui/firmware.in; then
+              echo "FREETZ_TYPE_FIRMWARE_08_2X=y"
+            else
+              echo "FREETZ_TYPE_FIRMWARE_08_2X nicht gefunden"
+            fi
           } > output/info.txt
 
       - name: Info-Text als Release hochladen
@@ -44,7 +45,7 @@ jobs:
         with:
           tag: "Freetz-Modellinfo"
           name: "Aktuelle Freetz-Variablen"
-          body: "Die gezielte Suche in der neuen config-Struktur wurde abgeschlossen. Pruefen Sie den Inhalt der info.txt."
+          body: "Der optimierte Kurz-Report wurde erfolgreich erstellt."
           prerelease: false
           allowUpdates: true
           artifacts: "output/info.txt"
