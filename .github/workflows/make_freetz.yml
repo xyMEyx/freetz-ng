@@ -26,7 +26,7 @@ jobs:
 
       - name: System vorbereiten und Compiler installieren
         run: |
-          sudo apt-get update && sudo apt-get -y upgrade
+          sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get -y install \
             locales pv cpio rsync kmod imagemagick inkscape graphicsmagick subversion git bc unar wget sudo gcc g++ binutils autoconf automake \
             autopoint libtool-bin make bzip2 libncurses5-dev libreadline-dev zlib1g-dev flex bison patch texinfo gettext pkg-config ecj \
