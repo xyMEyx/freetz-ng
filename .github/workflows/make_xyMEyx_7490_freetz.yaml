@@ -40,48 +40,33 @@ jobs:
           make dirclean
           mkdir -p images
           
-          # =================================================================
-          # SCHRITT 1: Die schlanke Basis wie bisher erzeugen
-          # =================================================================
+          # 1. Hardware-Basis für die 7490 festlegen
           echo "FREETZ_USER_LEVEL_EXPERT=y" > .config
           echo "FREETZ_SERIES_4=y" >> .config
           echo "FREETZ_TYPE_7490=y" >> .config
-          echo "FREETZ_TYPE_FIRMWARE_07_5X=y" >> .config
           echo "FREETZ_TARGET_IPV6_SUPPORT=y" >> .config
+          echo "FREETZ_TYPE_FIRMWARE_07_5X=y" >> .config
           
-          # Erster Durchlauf: Generiert das Grundgerüst
-          make olddefconfig
+          # 2. DIE WAHREN GENERALSCHLÜSSEL (Hebt die Freetz-NG Quellcode-Sperren auf)
+          echo "FREETZ_REPLACE_KERNEL=y" >> .config
+          echo "FREETZ_PACKAGE_DNSMASQ_AUTO_DISABLE=n" >> .config
           
-          # =================================================================
-          # SCHRITT 2: Radikales Brechen der Sperren & Injektion
-          # =================================================================
-          
-          # 1. Wir löschen die DISABLE-Sperren komplett aus der Datei (Zeilen eliminieren)
-          sed -i '/FREETZ_PACKAGE_DNSMASQ_DISABLE_DHCP/d' .config
-          sed -i '/FREETZ_PACKAGE_DNSMASQ_DISABLE_DNS/d' .config
-          
-          # 2. Wir überschreiben die alten Deaktivierungen der Hauptpakete
-          sed -i 's/# FREETZ_REPLACE_KERNEL is not set/FREETZ_REPLACE_KERNEL=y/' .config
-          sed -i 's/# FREETZ_PACKAGE_DNSMASQ is not set/FREETZ_PACKAGE_DNSMASQ=y/' .config
-          sed -i 's/# FREETZ_PACKAGE_IPTABLES is not set/FREETZ_PACKAGE_IPTABLES=y/' .config
-          
-          # 3. Wir hängen die gewünschten Optionen nun hart an das Ende an.
-          # Da wir die Sperren oben gelöscht haben, gibt es keine Konflikte mehr!
+          # 3. Freetz-Userland-Pakete aktivieren
+          echo "FREETZ_PACKAGE_DNSMASQ=y" >> .config
           echo "FREETZ_PACKAGE_DNSMASQ_WITH_DHCP=y" >> .config
           echo "FREETZ_PACKAGE_DNSMASQ_WITH_IPV6=y" >> .config
+          echo "FREETZ_PACKAGE_IPTABLES=y" >> .config
           echo "FREETZ_PACKAGE_IPTABLES_MOD_IP6TABLES=y" >> .config
           echo "FREETZ_PACKAGE_IPTABLES_MOD_CONNTRACK_EXTRA=y" >> .config
           echo "FREETZ_PACKAGE_IPTABLES_MOD_NAT_EXTRA=y" >> .config
           
-          # Shared Libraries erzwingen
+          # 4. Compiler-Bibliotheken (Shared Libraries) miterzwingen
           echo "FREETZ_LIB_libusb0=y" >> .config
           echo "FREETZ_LIB_libusb1=y" >> .config
           echo "FREETZ_LIB_libcrypto=y" >> .config
           echo "FREETZ_OPENSSL_VERSION_35=y" >> .config
 
-          # =================================================================
-          # SCHRITT 3: Kernel-Templates impfen & Finaler olddefconfig-Durchlauf
-          # =================================================================
+          # 5. Kernel-Optionen für NAT66 in alle Kernel-Templates injizieren
           find kernel/config/ -type f -name "*.config" | while read -r config_file; do
             echo "CONFIG_IP6_NF_IPTABLES=m" >> "$config_file"
             echo "CONFIG_IP6_NF_MATCH_HL=m" >> "$config_file"
@@ -92,15 +77,15 @@ jobs:
             echo "CONFIG_NF_CONNTRACK_IPV6=m" >> "$config_file"
           done
           
-          # Zweiter Durchlauf: Zwingt Freetz, die Kaskaden-Abhängigkeiten aufzubauen
+          # EINZIGER DURCHLAUF: Das System berechnet die Abhängigkeiten nun ohne Sperren
           make olddefconfig
           
-          # 4. Bildschirmausgabe zur Kontrolle
+          # 6. Kompakte Bildschirmausgabe zur Kontrolle
           echo -e "\n================ KOPPIEREN FUER DEN CHAT AB HIER ================"
           grep -E "7490|IPV6|DNSMASQ|IPTABLES|NETFILTER|FREETZ_MODULES|REPLACE_KERNEL" .config
           echo -e "================ KOPPIEREN FUER DEN CHAT BIS HIER ================\n"
           
-          # 5. Sicherheitsprüfung
+          # 7. Sicherheitsprüfung gegen unvollständigen Reset auf die Standard-7690
           if grep -q "FREETZ_TYPE_7690=y" .config; then
             echo "FEHLER: Konfiguration wurde von Freetz verworfen und auf Standard (7690) zurückgesetzt!"
             exit 1
