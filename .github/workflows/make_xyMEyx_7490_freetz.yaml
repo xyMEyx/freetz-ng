@@ -33,8 +33,9 @@ jobs:
       - name: Eigene .config einspielen
         run: |
           mkdir -p images
-          echo "${{ vars.CONFIG_7490 }}" > .config
           make dirclean
+          echo "${{ vars.CONFIG_7490 }}" > .config
+          make olddefconfig
           make oldconfig
       - name: Firmware kompilieren
         run: |
