@@ -63,7 +63,8 @@ jobs:
           cat .config
           
           # Zwingt Freetz, die Werte für die 7490 zu übernehmen
-          yes "" | make oldconfig
+          make olddefconfig
+          make oldconfig
 
       - name: Firmware kompilieren
         run: |
