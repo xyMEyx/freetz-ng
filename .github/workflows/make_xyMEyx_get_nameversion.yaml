@@ -1,0 +1,39 @@
+name: Make_xyMEyx_get_nameversion
+
+on:
+  workflow_dispatch:
+
+jobs:
+  extract:
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Versionsdaten auslesen
+        run: |
+          mkdir -p output
+          {
+            echo "=== Freetz-NG System-Informationen ==="
+            echo "Repository: ${GITHUB_REPOSITORY}"
+            echo "Aktueller Git-Branch: ${GITHUB_REF_NAME}"
+            echo "Unterstuetzte FritzBox-Modelle in dieser Fork:"
+            grep -E "config FREETZ_TYPE_7490|config FREETZ_TYPE_7590" make/Config.infrastructure/Config.in || echo "Keine Direkttreffer in Hauptdatei"
+            echo "Verfuegbare Firmware-Definitionen im Quellcode:"
+            ls make/libs/ | head -n 5
+          } > output/info.txt
+
+      - name: Info-Text als Release hochladen
+        uses: ncipollo/release-action@v1
+        with:
+          tag: "Freetz-Modellinfo"
+          name: "Aktuelle Freetz-Variablen"
+          body: "Dieser 4-6 Zeiler enthaelt die ausgelesenen System- und Modellvariablen Ihrer Fork."
+          prerelease: false
+          allowUpdates: true
+          artifacts: "output/info.txt"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: false
