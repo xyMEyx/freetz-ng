@@ -40,31 +40,49 @@ jobs:
           make dirclean
           mkdir -p images
           
-          # 1. Basis-Konfiguration für die 7490 zeilenweise schreiben
+          # =================================================================
+          # SCHRITT 1: Die schlanke Basis wie bisher erzeugen
+          # =================================================================
           echo "FREETZ_USER_LEVEL_EXPERT=y" > .config
           echo "FREETZ_SERIES_4=y" >> .config
           echo "FREETZ_TYPE_7490=y" >> .config
           echo "FREETZ_TYPE_FIRMWARE_07_5X=y" >> .config
           echo "FREETZ_TARGET_IPV6_SUPPORT=y" >> .config
           
-          # 2. Wir erzwingen die Pakete direkt in den Freetz-Auswahl-Vorlagen,
-          # damit olddefconfig sie als "vom Benutzer gewählt" betrachten muss
-          mkdir -p config/mod
-          echo "FREETZ_PACKAGE_DNSMASQ=y" >> .config
-          echo "FREETZ_PACKAGE_DNSMASQ_WITH_DHCP=y" >> .config
-          echo "FREETZ_PACKAGE_DNSMASQ_WITH_IPV6=y" >> .config
-          echo "FREETZ_PACKAGE_IPTABLES=y" >> .config
-          echo "FREETZ_PACKAGE_IPTABLES_MOD_IP6TABLES=y" >> .config
-          echo "FREETZ_PACKAGE_IPTABLES_MOD_CONNTRACK_EXTRA=y" >> .config
-          echo "FREETZ_PACKAGE_IPTABLES_MOD_NAT_EXTRA=y" >> .config
+          # Erster Durchlauf: Freetz generiert die vollständige Grund-Config
+          make olddefconfig
           
-          # Systembibliotheken mitgeben
-          echo "FREETZ_LIB_libusb0=y" >> .config
-          echo "FREETZ_LIB_libusb1=y" >> .config
-          echo "FREETZ_LIB_libcrypto=y" >> .config
-          echo "FREETZ_OPENSSL_VERSION_35=y" >> .config
+          # =================================================================
+          # SCHRITT 2: Gezieltes Überschreiben der bestehenden Zeilen (In-Place)
+          # =================================================================
           
-          # 3. Kernel-Optionen für NAT66 gezielt als MODUL (=m) in alle Kernel-Templates injizieren
+          # 1. Kernel-Ersatz aktivieren
+          sed -i 's/# FREETZ_REPLACE_KERNEL is not set/FREETZ_REPLACE_KERNEL=y/' .config
+          
+          # 2. Die dnsmasq-Sperren aufheben (DISABLE von =y auf 'not set' umbiegen)
+          sed -i 's/FREETZ_PACKAGE_DNSMASQ_DISABLE_DHCP=y/# FREETZ_PACKAGE_DNSMASQ_DISABLE_DHCP is not set/' .config
+          sed -i 's/FREETZ_PACKAGE_DNSMASQ_DISABLE_DNS=y/# FREETZ_PACKAGE_DNSMASQ_DISABLE_DNS is not set/' .config
+          
+          # 3. Hauptpakete von 'not set' auf aktiv (=y) überschreiben
+          sed -i 's/# FREETZ_PACKAGE_DNSMASQ is not set/FREETZ_PACKAGE_DNSMASQ=y/' .config
+          sed -i 's/# FREETZ_PACKAGE_IPTABLES is not set/FREETZ_PACKAGE_IPTABLES=y/' .config
+          
+          # 4. Spezifische Unteroptionen und Module direkt in ihren Zeilen aktivieren
+          sed -i 's/# FREETZ_PACKAGE_DNSMASQ_WITH_DHCP is not set/FREETZ_PACKAGE_DNSMASQ_WITH_DHCP=y/' .config
+          sed -i 's/# FREETZ_PACKAGE_DNSMASQ_WITH_IPV6 is not set/FREETZ_PACKAGE_DNSMASQ_WITH_IPV6=y/' .config
+          sed -i 's/# FREETZ_PACKAGE_IPTABLES_MOD_IP6TABLES is not set/FREETZ_PACKAGE_IPTABLES_MOD_IP6TABLES=y/' .config
+          sed -i 's/# FREETZ_PACKAGE_IPTABLES_MOD_CONNTRACK_EXTRA is not set/FREETZ_PACKAGE_IPTABLES_MOD_CONNTRACK_EXTRA=y/' .config
+          sed -i 's/# FREETZ_PACKAGE_IPTABLES_MOD_NAT_EXTRA is not set/FREETZ_PACKAGE_IPTABLES_MOD_NAT_EXTRA=y/' .config
+          
+          # 5. Benötigte Shared-Libraries direkt in ihren Zeilen aktivieren
+          sed -i 's/# FREETZ_LIB_libusb0 is not set/FREETZ_LIB_libusb0=y/' .config
+          sed -i 's/# FREETZ_LIB_libusb1 is not set/FREETZ_LIB_libusb1=y/' .config
+          sed -i 's/# FREETZ_LIB_libcrypto is not set/FREETZ_LIB_libcrypto=y/' .config
+          sed -i 's/# FREETZ_OPENSSL_VERSION_35 is not set/FREETZ_OPENSSL_VERSION_35=y/' .config
+
+          # =================================================================
+          # SCHRITT 3: Kernel-Templates impfen & Finaler olddefconfig-Durchlauf
+          # =================================================================
           find kernel/config/ -type f -name "*.config" | while read -r config_file; do
             echo "CONFIG_IP6_NF_IPTABLES=m" >> "$config_file"
             echo "CONFIG_IP6_NF_MATCH_HL=m" >> "$config_file"
@@ -75,12 +93,12 @@ jobs:
             echo "CONFIG_NF_CONNTRACK_IPV6=m" >> "$config_file"
           done
           
-          # Freetz anweisen, die gesetzten Werte bindend zu härten
+          # Zweiter Durchlauf: Validiert die präzise ersetzten Daten final
           make olddefconfig
           
-          # 4. Bildschirmausgabe zur erneuten Kontrolle
+          # 4. Bildschirmausgabe zur Kontrolle
           echo -e "\n================ KOPPIEREN FUER DEN CHAT AB HIER ================"
-          grep -E "7490|IPV6|DNSMASQ|IPTABLES|NETFILTER|FREETZ_MODULES" .config
+          grep -E "7490|IPV6|DNSMASQ|IPTABLES|NETFILTER|FREETZ_MODULES|REPLACE_KERNEL" .config
           echo -e "================ KOPPIEREN FUER DEN CHAT BIS HIER ================\n"
           
           # 5. Sicherheitsprüfung
