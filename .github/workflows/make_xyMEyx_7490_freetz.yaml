@@ -41,70 +41,73 @@ jobs:
           make dirclean
           mkdir -p images
           
-          # Behebt den SSL-Abbruch bei den BusyBox-Host-Tools auf den GitHub-Servern
+          # Behebt den SSL-Abbruch (Error 4) beim Herunterladen der BusyBox-Host-Tools auf GitHub
           echo "check_certificate = off" >> ~/.wgetrc
           
           # =================================================================
-          # STUFE 1: Nur Identifikation und ALLE primären Türöffner setzen
+          # STUFE 1: Hardware-Basis und primäre Türöffner schreiben
           # =================================================================
-          echo "FREETZ_SERIES_4=y" > .config
+          echo "FREETZ_USER_LEVEL_EXPERT=y" > .config
+          echo "FREETZ_SERIES_4=y" >> .config
           echo "FREETZ_TYPE_7490=y" >> .config
-          echo "FREETZ_TYPE_FIRMWARE_07_5X=y" >> .config
-          
-          # Die 3 zwingenden System-Türöffner (Schalten die Menü-Bäume im Quellcode frei)
-          echo "FREETZ_USER_LEVEL_EXPERT=y" >> .config
           echo "FREETZ_TARGET_IPV6_SUPPORT=y" >> .config
+          echo "FREETZ_TYPE_FIRMWARE_07_5X=y" >> .config
           echo "FREETZ_REPLACE_KERNEL=y" >> .config
           
-          # Erster Durchlauf: Freetz erzeugt das vollständige, valide 3000-Zeilen-Gerüst.
-          # Da IPv6 und Expert aktiv sind, existieren nun alle Optionen als definierte Zeilen!
+          # =================================================================
+          # STUFE 2: Kernel-Templates universell aufspüren und impfen
+          # Wir suchen ab dem Hauptverzeichnis nach allen Kernel- und Linux-Configs,
+          # löschen alte Konflikte ("not set") und brennen unsere Module ein.
+          # =================================================================
+          find . -type f -name "*config*" | grep -E "make/linux|toolchain|target/kernel" | while read -r config_file; do
+            # Verhindert, dass wir aus Versehen unsere eigene Freetz-Haupt-.config manipulieren
+            if [ "$config_file" != "./.config" ]; then
+              echo "=> Impfe gefundene Kernel-Datei: $config_file"
+              sed -i '/CONFIG_IP6_NF_/d' "$config_file"
+              sed -i '/CONFIG_NF_CONNTRACK_IPV6/d' "$config_file"
+              
+              echo "CONFIG_IP6_NF_IPTABLES=m" >> "$config_file"
+              echo "CONFIG_IP6_NF_MATCH_HL=m" >> "$config_file"
+              echo "CONFIG_IP6_NF_TARGET_HL=m" >> "$config_file"
+              echo "CONFIG_IP6_NF_MANGLE=m" >> "$config_file"
+              echo "CONFIG_IP6_NF_NAT=m" >> "$config_file"
+              echo "CONFIG_IP6_NF_TARGET_MASQUERADE=m" >> "$config_file"
+              echo "CONFIG_NF_CONNTRACK_IPV6=m" >> "$config_file"
+            fi
+          done
+          
+          # Erster Durchlauf: Erzeugt das vollständige Grundgerüst (3000 Zeilen)
           make olddefconfig
           
           # =================================================================
-          # STUFE 2: Präzises In-Place-Umbiegen der nun existierenden Zeilen
+          # STUFE 3: Präzises In-Place-Umbiegen der echten DISABLE-Sperren via sed
           # =================================================================
-          
-          # 1. Wir brechen die harten AVM-Konfliktsperren auf, die jetzt garantiert in der Datei stehen
           sed -i 's/FREETZ_PACKAGE_DNSMASQ_DISABLE_DHCP=y/# FREETZ_PACKAGE_DNSMASQ_DISABLE_DHCP is not set/' .config
           sed -i 's/FREETZ_PACKAGE_DNSMASQ_DISABLE_DNS=y/# FREETZ_PACKAGE_DNSMASQ_DISABLE_DNS is not set/' .config
           
-          # 2. Wir schalten die automatische Deaktivierung im Freetz-Kern dauerhaft aus
+          # Entzieht dem Freetz-Kern das Recht, dnsmasq automatisch stillzulegen
           sed -i 's/FREETZ_PACKAGE_DNSMASQ_AUTO_DISABLE=y/FREETZ_PACKAGE_DNSMASQ_AUTO_DISABLE=n/' .config
           
-          # 3. Wir biegen die Hauptpakete von "not set" auf aktiv (=y) um
+          # Hauptpakete von "not set" auf aktiv (=y) umbiegen
           sed -i 's/# FREETZ_PACKAGE_DNSMASQ is not set/FREETZ_PACKAGE_DNSMASQ=y/' .config
           sed -i 's/# FREETZ_PACKAGE_IPTABLES is not set/FREETZ_PACKAGE_IPTABLES=y/' .config
           
-          # 4. Wir schalten die für NAT66 wichtigen Unteroptionen direkt in ihren Zeilen scharf
-          sed -i 's/# FREETZ_PACKAGE_DNSMASQ_WITH_DHCP is not set/FREETZ_PACKAGE_DNSMASQ_WITH_DHCP=y/' .config
-          sed -i 's/# FREETZ_PACKAGE_DNSMASQ_WITH_IPV6 is not set/FREETZ_PACKAGE_DNSMASQ_WITH_IPV6=y/' .config
-          sed -i 's/# FREETZ_PACKAGE_IPTABLES_MOD_IP6TABLES is not set/FREETZ_PACKAGE_IPTABLES_MOD_IP6TABLES=y/' .config
-          sed -i 's/# FREETZ_PACKAGE_IPTABLES_MOD_CONNTRACK_EXTRA is not set/FREETZ_PACKAGE_IPTABLES_MOD_CONNTRACK_EXTRA=y/' .config
-          sed -i 's/# FREETZ_PACKAGE_IPTABLES_MOD_NAT_EXTRA is not set/FREETZ_PACKAGE_IPTABLES_MOD_NAT_EXTRA=y/' .config
+          # =================================================================
+          # STUFE 4: NAT66-Optionen und Bibliotheken am Ende erzwingen
+          # =================================================================
+          echo "FREETZ_PACKAGE_DNSMASQ_WITH_DHCP=y" >> .config
+          echo "FREETZ_PACKAGE_DNSMASQ_WITH_IPV6=y" >> .config
+          echo "FREETZ_PACKAGE_IPTABLES_MOD_IP6TABLES=y" >> .config
+          echo "FREETZ_PACKAGE_IPTABLES_MOD_CONNTRACK_EXTRA=y" >> .config
+          echo "FREETZ_PACKAGE_IPTABLES_MOD_NAT_EXTRA=y" >> .config
           
-          # 5. Wir schalten die zwingenden Shared Libraries für den Compiler direkt in ihren Zeilen scharf
-          sed -i 's/# FREETZ_LIB_libusb0 is not set/FREETZ_LIB_libusb0=y/' .config
-          sed -i 's/# FREETZ_LIB_libusb1 is not set/FREETZ_LIB_libusb1=y/' .config
-          sed -i 's/# FREETZ_LIB_libcrypto is not set/FREETZ_LIB_libcrypto=y/' .config
-          sed -i 's/# FREETZ_OPENSSL_VERSION_35 is not set/FREETZ_OPENSSL_VERSION_35=y/' .config
+          # Shared Libraries erzwingen, damit der Compiler fehlerfrei durchläuft
+          echo "FREETZ_LIB_libusb0=y" >> .config
+          echo "FREETZ_LIB_libusb1=y" >> .config
+          echo "FREETZ_LIB_libcrypto=y" >> .config
+          echo "FREETZ_OPENSSL_VERSION_35=y" >> .config
 
-          # =================================================================
-          # STUFE 3: Kernel-Templates impfen & Finaler Abhängigkeitsabgleich
-          # =================================================================
-          find kernel/config/ -type f -name "*.config" | while read -r config_file; do
-            sed -i '/CONFIG_IP6_NF_/d' "$config_file"
-            sed -i '/CONFIG_NF_CONNTRACK_IPV6/d' "$config_file"
-            
-            echo "CONFIG_IP6_NF_IPTABLES=m" >> "$config_file"
-            echo "CONFIG_IP6_NF_MATCH_HL=m" >> "$config_file"
-            echo "CONFIG_IP6_NF_TARGET_HL=m" >> "$config_file"
-            echo "CONFIG_IP6_NF_MANGLE=m" >> "$config_file"
-            echo "CONFIG_IP6_NF_NAT=m" >> "$config_file"
-            echo "CONFIG_IP6_NF_TARGET_MASQUERADE=m" >> "$config_file"
-            echo "CONFIG_NF_CONNTRACK_IPV6=m" >> "$config_file"
-          done
-          
-          # Zweiter Durchlauf: Validiert die manipulierten Daten final und zieht Unter-Abhängigkeiten nach
+          # Zweiter Durchlauf: Besiegelt die Konfiguration und zieht Unter-Abhängigkeiten nach
           make olddefconfig
           
           # 6. Kompakte Bildschirmausgabe zur Kontrolle
