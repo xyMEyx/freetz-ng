@@ -38,7 +38,22 @@ jobs:
       - name: Eigene .config einspielen
         run: |
           mkdir -p images
-          echo "${{ vars.CONFIG_7490 }}" > .config
+          cat << 'EOF' > .config
+          FREETZ_TYPE_7490=y
+          FREETZ_TYPE_LANG_DE=y
+          FREETZ_TYPE_FIRMWARE_07_5X=y
+          FREETZ_USER_LEVEL_EXPERT=y
+          FREETZ_MODULE_ip6table_nat=y
+          FREETZ_MODULE_ip6t_MASQUERADE=y
+          FREETZ_MODULE_ip6table_mangle=y
+          FREETZ_MODULE_ip6t_HL=y
+          FREETZ_MODULE_nf_conntrack_ipv6=y
+          FREETZ_TARGET_IPV6_SUPPORT=y
+          FREETZ_PACKAGE_MOD_CGI=y
+          FREETZ_PACKAGE_NDPPD=y
+          FREETZ_PATCH_COCKPIT_UNSECURE=y
+          FREETZ_MODIFY_DSL_SETTINGS=y
+          EOF
           make dirclean
           make oldconfig
 
