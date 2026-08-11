@@ -39,10 +39,11 @@ jobs:
         run: |
           mkdir -p images
           cat << 'EOF' > .config
-          # FREETZ_TYPE_7690 is not set
-          FREETZ_TYPE_7590_W5=y
+          FREETZ_TYPE_7590=y
+          FREETZ_BOARD_TYPE="grx5_4mb"
+          FREETZ_KERNEL_VERSION_4_9_325=y
+          FREETZ_AVM_VERSION_07_5X=y
           FREETZ_TYPE_LANG_DE=y
-          FREETZ_TYPE_FIRMWARE_08_2X=y
           FREETZ_USER_LEVEL_EXPERT=y
           FREETZ_MODULE_ip6table_nat=y
           FREETZ_MODULE_ip6t_MASQUERADE=y
@@ -57,6 +58,7 @@ jobs:
           EOF
           make dirclean
           make olddefconfig
+
 
       - name: Firmware kompilieren
         run: |
