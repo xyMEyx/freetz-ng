@@ -40,8 +40,9 @@ jobs:
           make dirclean
           mkdir -p images
           
-          # Schreibt die Konfiguration ohne führende Leerzeichen direkt in die Datei
+          # Erstellt eine syntaktisch fehlerfreie und gültige Konfiguration
           echo "FREETZ_CONFIG_OVERRIDE=y" > .config
+          echo "FREETZ_TARGET_ARCH_MIPS=y" >> .config
           echo "FREETZ_TYPE_7490=y" >> .config
           echo "FREETZ_TYPE_LANG_DE=y" >> .config
           echo "FREETZ_AVM_VERSION_07_6X=y" >> .config
@@ -58,9 +59,11 @@ jobs:
           echo "FREETZ_PATCH_COCKPIT_UNSECURE=y" >> .config
           echo "FREETZ_MODIFY_DSL_SETTINGS=y" >> .config
           
-          # Berechnet die restlichen Standardwerte für die 7490
+          # Zur Kontrolle: Zeigt den Inhalt der erstellten Datei im GitHub-Log an
+          cat .config
+          
+          # Zwingt Freetz, die Werte für die 7490 zu übernehmen
           yes "" | make oldconfig
-
 
       - name: Firmware kompilieren
         run: |
