@@ -1,13 +1,10 @@
 name: Build_FritzBox_7490
-
 on:
   workflow_dispatch:
-
 concurrency:
   group: build-7490
   cancel-in-progress: true
   queue: single
-
 jobs:
   build:
     permissions:
@@ -29,40 +26,19 @@ jobs:
             perl libstring-crc32-perl ruby gawk libusb-dev unzip intltool libacl1-dev libcap-dev libc6-dev-i386 \
             libelf-dev libncurses-dev gcc-multilib bsdmainutils lib32stdc++6 libglib2.0-dev ccache cmake lib32z1-dev libsqlite3-dev sqlite3 libzstd-dev \
             netcat-openbsd curl uuid-dev libssl-dev libgnutls28-dev u-boot-tools device-tree-compiler
-
       - name: Spracheinstellungen einrichten
         run: |
           sudo locale-gen en_US.utf8 && sudo locale-gen de_DE.UTF-8
           sudo update-locale LANG=de_DE.UTF-8
-
       - name: Eigene .config einspielen
         run: |
           mkdir -p images
-          cat << 'EOF' > .config
-          FREETZ_TYPE_7490=y
-          FREETZ_BOARD_TYPE="vr9_8mb"
-          FREETZ_KERNEL_VERSION_3_10_104=y
-          FREETZ_AVM_VERSION_07_5X=y
-          FREETZ_TYPE_LANG_DE=y
-          FREETZ_USER_LEVEL_EXPERT=y
-          FREETZ_MODULE_ip6table_nat=y
-          FREETZ_MODULE_ip6t_MASQUERADE=y
-          FREETZ_MODULE_ip6table_mangle=y
-          FREETZ_MODULE_ip6t_HL=y
-          FREETZ_MODULE_nf_conntrack_ipv6=y
-          FREETZ_TARGET_IPV6_SUPPORT=y
-          FREETZ_PACKAGE_MOD_CGI=y
-          FREETZ_PACKAGE_NDPPD=y
-          FREETZ_PATCH_COCKPIT_UNSECURE=y
-          FREETZ_MODIFY_DSL_SETTINGS=y
-          EOF
+          echo "${{ vars.CONFIG_7490 }}" > .config
           make dirclean
-          yes "" | make oldconfig
-
+          make oldconfig
       - name: Firmware kompilieren
         run: |
           make
-
       - name: Variablen vorbereiten
         id: vars
         run: |
@@ -71,7 +47,6 @@ jobs:
           echo "last=${LAST_FILE}" >> $GITHUB_OUTPUT
           echo "name=${NAME_FILE}" >> $GITHUB_OUTPUT
           test -n "${NAME_FILE}"
-
       - name: Firmware als Release hochladen
         uses: ncipollo/release-action@v1
         with:
@@ -79,8 +54,7 @@ jobs:
           name: ${{ steps.vars.outputs.name }}
           body: |
             Build fuer FRITZ!Box 7490 erfolgreich abgeschlossen.
-            Die fertige Datei befindet sich im Anhang.
-          prerelease: false
+            Die fertige Datei befindet sich im Anhang.          prerelease: false
           allowUpdates: true
           artifacts: "images/*"
           token: ${{ secrets.GITHUB_TOKEN }}
