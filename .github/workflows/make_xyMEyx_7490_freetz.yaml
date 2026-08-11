@@ -64,7 +64,9 @@ jobs:
           
           # Zwingt Freetz, die Werte für die 7490 zu übernehmen
           make olddefconfig
-          make oldconfig
+
+          # Zur Kontrolle: Zeigt den Inhalt der erstellten Datei im GitHub-Log an
+          cat .config
 
       - name: Firmware kompilieren
         run: |
