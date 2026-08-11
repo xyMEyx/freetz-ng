@@ -38,7 +38,7 @@ jobs:
       - name: Eigene .config einspielen
         run: |
           mkdir -p images
-          cat << 'EOF' > private.config
+          cat << 'EOF' > .config
           FREETZ_TYPE_7490=y
           FREETZ_BOARD_TYPE="vr9_8mb"
           FREETZ_KERNEL_VERSION_3_10_104=y
@@ -57,7 +57,7 @@ jobs:
           FREETZ_MODIFY_DSL_SETTINGS=y
           EOF
           make dirclean
-          make alldefconfig KCONFIG_ALLCONFIG=private.config
+          yes "" | make oldconfig
 
       - name: Firmware kompilieren
         run: |
