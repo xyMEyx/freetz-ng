@@ -49,36 +49,35 @@ jobs:
           echo "FREETZ_TYPE_FIRMWARE_07_5X=y" >> .config
           echo "FREETZ_TARGET_IPV6_SUPPORT=y" >> .config
           
-          # Erster Durchlauf: Freetz generiert die vollständige Grund-Config
+          # Erster Durchlauf: Generiert das Grundgerüst
           make olddefconfig
           
           # =================================================================
-          # SCHRITT 2: Gezieltes Überschreiben der bestehenden Zeilen (In-Place)
+          # SCHRITT 2: Radikales Brechen der Sperren & Injektion
           # =================================================================
           
-          # 1. Kernel-Ersatz aktivieren
+          # 1. Wir löschen die DISABLE-Sperren komplett aus der Datei (Zeilen eliminieren)
+          sed -i '/FREETZ_PACKAGE_DNSMASQ_DISABLE_DHCP/d' .config
+          sed -i '/FREETZ_PACKAGE_DNSMASQ_DISABLE_DNS/d' .config
+          
+          # 2. Wir überschreiben die alten Deaktivierungen der Hauptpakete
           sed -i 's/# FREETZ_REPLACE_KERNEL is not set/FREETZ_REPLACE_KERNEL=y/' .config
-          
-          # 2. Die dnsmasq-Sperren aufheben (DISABLE von =y auf 'not set' umbiegen)
-          sed -i 's/FREETZ_PACKAGE_DNSMASQ_DISABLE_DHCP=y/# FREETZ_PACKAGE_DNSMASQ_DISABLE_DHCP is not set/' .config
-          sed -i 's/FREETZ_PACKAGE_DNSMASQ_DISABLE_DNS=y/# FREETZ_PACKAGE_DNSMASQ_DISABLE_DNS is not set/' .config
-          
-          # 3. Hauptpakete von 'not set' auf aktiv (=y) überschreiben
           sed -i 's/# FREETZ_PACKAGE_DNSMASQ is not set/FREETZ_PACKAGE_DNSMASQ=y/' .config
           sed -i 's/# FREETZ_PACKAGE_IPTABLES is not set/FREETZ_PACKAGE_IPTABLES=y/' .config
           
-          # 4. Spezifische Unteroptionen und Module direkt in ihren Zeilen aktivieren
-          sed -i 's/# FREETZ_PACKAGE_DNSMASQ_WITH_DHCP is not set/FREETZ_PACKAGE_DNSMASQ_WITH_DHCP=y/' .config
-          sed -i 's/# FREETZ_PACKAGE_DNSMASQ_WITH_IPV6 is not set/FREETZ_PACKAGE_DNSMASQ_WITH_IPV6=y/' .config
-          sed -i 's/# FREETZ_PACKAGE_IPTABLES_MOD_IP6TABLES is not set/FREETZ_PACKAGE_IPTABLES_MOD_IP6TABLES=y/' .config
-          sed -i 's/# FREETZ_PACKAGE_IPTABLES_MOD_CONNTRACK_EXTRA is not set/FREETZ_PACKAGE_IPTABLES_MOD_CONNTRACK_EXTRA=y/' .config
-          sed -i 's/# FREETZ_PACKAGE_IPTABLES_MOD_NAT_EXTRA is not set/FREETZ_PACKAGE_IPTABLES_MOD_NAT_EXTRA=y/' .config
+          # 3. Wir hängen die gewünschten Optionen nun hart an das Ende an.
+          # Da wir die Sperren oben gelöscht haben, gibt es keine Konflikte mehr!
+          echo "FREETZ_PACKAGE_DNSMASQ_WITH_DHCP=y" >> .config
+          echo "FREETZ_PACKAGE_DNSMASQ_WITH_IPV6=y" >> .config
+          echo "FREETZ_PACKAGE_IPTABLES_MOD_IP6TABLES=y" >> .config
+          echo "FREETZ_PACKAGE_IPTABLES_MOD_CONNTRACK_EXTRA=y" >> .config
+          echo "FREETZ_PACKAGE_IPTABLES_MOD_NAT_EXTRA=y" >> .config
           
-          # 5. Benötigte Shared-Libraries direkt in ihren Zeilen aktivieren
-          sed -i 's/# FREETZ_LIB_libusb0 is not set/FREETZ_LIB_libusb0=y/' .config
-          sed -i 's/# FREETZ_LIB_libusb1 is not set/FREETZ_LIB_libusb1=y/' .config
-          sed -i 's/# FREETZ_LIB_libcrypto is not set/FREETZ_LIB_libcrypto=y/' .config
-          sed -i 's/# FREETZ_OPENSSL_VERSION_35 is not set/FREETZ_OPENSSL_VERSION_35=y/' .config
+          # Shared Libraries erzwingen
+          echo "FREETZ_LIB_libusb0=y" >> .config
+          echo "FREETZ_LIB_libusb1=y" >> .config
+          echo "FREETZ_LIB_libcrypto=y" >> .config
+          echo "FREETZ_OPENSSL_VERSION_35=y" >> .config
 
           # =================================================================
           # SCHRITT 3: Kernel-Templates impfen & Finaler olddefconfig-Durchlauf
@@ -93,7 +92,7 @@ jobs:
             echo "CONFIG_NF_CONNTRACK_IPV6=m" >> "$config_file"
           done
           
-          # Zweiter Durchlauf: Validiert die präzise ersetzten Daten final
+          # Zweiter Durchlauf: Zwingt Freetz, die Kaskaden-Abhängigkeiten aufzubauen
           make olddefconfig
           
           # 4. Bildschirmausgabe zur Kontrolle
