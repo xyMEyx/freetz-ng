@@ -40,21 +40,48 @@ jobs:
           make dirclean
           mkdir -p images
           
-          # Erstellt eine syntaktisch fehlerfreie und gültige Konfiguration
+          # 1. Basis-Konfiguration für die 7490 zeilenweise schreiben
           echo "FREETZ_USER_LEVEL_EXPERT=y" > .config
           echo "FREETZ_SERIES_4=y" >> .config
           echo "FREETZ_TYPE_7490=y" >> .config
           echo "FREETZ_TYPE_FIRMWARE_07_5X=y" >> .config
           echo "FREETZ_TARGET_IPV6_SUPPORT=y" >> .config
           
-          # Zur Kontrolle: Zeigt den Inhalt der erstellten Datei im GitHub-Log an
+          # 2. IPv6 Freetz-Netzwerk-Pakete (dnsmasq für DHCPv6 und iptables-Erweiterungen) hinzufügen
+          echo "CONFIG_PACKAGE_dnsmasq=y" >> .config
+          echo "CONFIG_PACKAGE_dnsmasq_with_ipv6=y" >> .config
+          echo "CONFIG_PACKAGE_iptables=y" >> .config
+          echo "CONFIG_PACKAGE_iptables-mod-ip6tables=y" >> .config
+          echo "CONFIG_PACKAGE_iptables-mod-conntrack-extra=y" >> .config
+          echo "CONFIG_PACKAGE_iptables-mod-nat-extra=y" >> .config
+          
+          # 3. Fehlende Kernel-Optionen für NAT66 gezielt als MODUL (=m) in alle Kernel-Templates injizieren
+          find kernel/config/ -type f -name "*.config" | while read -r config_file; do
+            echo "CONFIG_IP6_NF_IPTABLES=m" >> "$config_file"
+            echo "CONFIG_IP6_NF_MATCH_HL=m" >> "$config_file"
+            echo "CONFIG_IP6_NF_TARGET_HL=m" >> "$config_file"
+            echo "CONFIG_IP6_NF_MANGLE=m" >> "$config_file"
+            echo "CONFIG_IP6_NF_NAT=m" >> "$config_file"
+            echo "CONFIG_IP6_NF_TARGET_MASQUERADE=m" >> "$config_file"
+            echo "CONFIG_NF_CONNTRACK_IPV6=m" >> "$config_file"
+          done
+          
+          # Zur Kontrolle: Zeigt den generierten Dateiinhalt vor der Auflösung im GitHub-Log an
+          echo "--- Generierte .config VOR olddefconfig ---"
           cat .config
           
-          # Zwingt Freetz, die Werte für die 7490 zu übernehmen
+          # Zwingt Freetz, die Werte für die 7490 zu übernehmen und Abhängigkeiten aufzulösen
           make olddefconfig
 
-          # Zur Kontrolle: Zeigt den Inhalt der erstellten Datei im GitHub-Log an
+          # Zur Kontrolle: Zeigt den Inhalt der finalen Datei im GitHub-Log an
+          echo "--- Validierte .config NACH olddefconfig ---"
           cat .config
+          
+          # 4. Sicherheitsprüfung: Falls Freetz die Config verworfen hat, bricht der Build hier kontrolliert ab
+          if grep -q "FREETZ_TYPE_7690=y" .config; then
+            echo "FEHLER: Konfiguration wurde von Freetz verworfen und auf Standard (7690) zurückgesetzt!"
+            exit 1
+          fi
 
       - name: Firmware kompilieren
         run: |
