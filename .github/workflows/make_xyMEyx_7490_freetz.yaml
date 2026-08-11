@@ -47,13 +47,20 @@ jobs:
           echo "FREETZ_TYPE_FIRMWARE_07_5X=y" >> .config
           echo "FREETZ_TARGET_IPV6_SUPPORT=y" >> .config
           
-          # 2. IPv6 Freetz-Netzwerk-Pakete (Exakte Schreibweise für Freetz-NG)
+          # 2. IPv6 Freetz-Netzwerk-Pakete UND zwingende Compiler-Abhängigkeiten hinzufügen
           echo "FREETZ_PACKAGE_DNSMASQ=y" >> .config
+          echo "FREETZ_PACKAGE_DNSMASQ_WITH_DHCP=y" >> .config
           echo "FREETZ_PACKAGE_DNSMASQ_WITH_IPV6=y" >> .config
           echo "FREETZ_PACKAGE_IPTABLES=y" >> .config
           echo "FREETZ_PACKAGE_IPTABLES_MOD_IP6TABLES=y" >> .config
           echo "FREETZ_PACKAGE_IPTABLES_MOD_CONNTRACK_EXTRA=y" >> .config
           echo "FREETZ_PACKAGE_IPTABLES_MOD_NAT_EXTRA=y" >> .config
+          
+          # Zwingende Shared Libraries, damit Freetz die Pakete oben nicht löscht:
+          echo "FREETZ_LIB_libusb0=y" >> .config
+          echo "FREETZ_LIB_libusb1=y" >> .config
+          echo "FREETZ_LIB_libcrypto=y" >> .config
+          echo "FREETZ_OPENSSL_VERSION_35=y" >> .config
           
           # 3. Fehlende Kernel-Optionen für NAT66 gezielt als MODUL (=m) in alle Kernel-Templates injizieren
           find kernel/config/ -type f -name "*.config" | while read -r config_file; do
