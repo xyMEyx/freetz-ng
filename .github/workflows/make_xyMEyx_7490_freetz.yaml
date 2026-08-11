@@ -47,7 +47,9 @@ jobs:
           echo "FREETZ_TYPE_FIRMWARE_07_5X=y" >> .config
           echo "FREETZ_TARGET_IPV6_SUPPORT=y" >> .config
           
-          # 2. IPv6 Freetz-Netzwerk-Pakete UND zwingende Compiler-Abhängigkeiten hinzufügen
+          # 2. Wir erzwingen die Pakete direkt in den Freetz-Auswahl-Vorlagen,
+          # damit olddefconfig sie als "vom Benutzer gewählt" betrachten muss
+          mkdir -p config/mod
           echo "FREETZ_PACKAGE_DNSMASQ=y" >> .config
           echo "FREETZ_PACKAGE_DNSMASQ_WITH_DHCP=y" >> .config
           echo "FREETZ_PACKAGE_DNSMASQ_WITH_IPV6=y" >> .config
@@ -56,13 +58,13 @@ jobs:
           echo "FREETZ_PACKAGE_IPTABLES_MOD_CONNTRACK_EXTRA=y" >> .config
           echo "FREETZ_PACKAGE_IPTABLES_MOD_NAT_EXTRA=y" >> .config
           
-          # Zwingende Shared Libraries, damit Freetz die Pakete oben nicht löscht:
+          # Systembibliotheken mitgeben
           echo "FREETZ_LIB_libusb0=y" >> .config
           echo "FREETZ_LIB_libusb1=y" >> .config
           echo "FREETZ_LIB_libcrypto=y" >> .config
           echo "FREETZ_OPENSSL_VERSION_35=y" >> .config
           
-          # 3. Fehlende Kernel-Optionen für NAT66 gezielt als MODUL (=m) in alle Kernel-Templates injizieren
+          # 3. Kernel-Optionen für NAT66 gezielt als MODUL (=m) in alle Kernel-Templates injizieren
           find kernel/config/ -type f -name "*.config" | while read -r config_file; do
             echo "CONFIG_IP6_NF_IPTABLES=m" >> "$config_file"
             echo "CONFIG_IP6_NF_MATCH_HL=m" >> "$config_file"
@@ -73,16 +75,15 @@ jobs:
             echo "CONFIG_NF_CONNTRACK_IPV6=m" >> "$config_file"
           done
           
-          # Zwingt Freetz, die Werte für die 7490 zu übernehmen und Abhängigkeiten aufzulösen
+          # Freetz anweisen, die gesetzten Werte bindend zu härten
           make olddefconfig
           
-          # 4. Verkleinerte Bildschirmausgabe für den KI-Chat erzeugen
-          # Sucht gezielt nach allen gesetzten oder ungesetzten IPv6/NAT-Schlüsseln
+          # 4. Bildschirmausgabe zur erneuten Kontrolle
           echo -e "\n================ KOPPIEREN FUER DEN CHAT AB HIER ================"
           grep -E "7490|IPV6|DNSMASQ|IPTABLES|NETFILTER|FREETZ_MODULES" .config
           echo -e "================ KOPPIEREN FUER DEN CHAT BIS HIER ================\n"
           
-          # 5. Sicherheitsprüfung gegen unvollständigen Reset auf die Standard-7690
+          # 5. Sicherheitsprüfung
           if grep -q "FREETZ_TYPE_7690=y" .config; then
             echo "FEHLER: Konfiguration wurde von Freetz verworfen und auf Standard (7690) zurückgesetzt!"
             exit 1
