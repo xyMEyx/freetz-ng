@@ -41,19 +41,56 @@ jobs:
           make dirclean
           mkdir -p images
           
-          # Entschärfung des SSL-Abbruchs: Wir zwingen wget im gesamten Freetz-System, 
-          # Zertifikatsfehler bei den busybox.net-Spiegelservern zu ignorieren.
+          # Behebt den SSL-Abbruch bei den BusyBox-Host-Tools auf den GitHub-Servern
           echo "check_certificate = off" >> ~/.wgetrc
           
-          # 2. Hardware-Basis für die 7490 festlegen
-          echo "FREETZ_USER_LEVEL_EXPERT=y" > .config
-          echo "FREETZ_SERIES_4=y" >> .config
+          # =================================================================
+          # STUFE 1: Nur Identifikation und ALLE primären Türöffner setzen
+          # =================================================================
+          echo "FREETZ_SERIES_4=y" > .config
           echo "FREETZ_TYPE_7490=y" >> .config
-          echo "FREETZ_TARGET_IPV6_SUPPORT=y" >> .config
           echo "FREETZ_TYPE_FIRMWARE_07_5X=y" >> .config
+          
+          # Die 3 zwingenden System-Türöffner (Schalten die Menü-Bäume im Quellcode frei)
+          echo "FREETZ_USER_LEVEL_EXPERT=y" >> .config
+          echo "FREETZ_TARGET_IPV6_SUPPORT=y" >> .config
           echo "FREETZ_REPLACE_KERNEL=y" >> .config
+          
+          # Erster Durchlauf: Freetz erzeugt das vollständige, valide 3000-Zeilen-Gerüst.
+          # Da IPv6 und Expert aktiv sind, existieren nun alle Optionen als definierte Zeilen!
+          make olddefconfig
+          
+          # =================================================================
+          # STUFE 2: Präzises In-Place-Umbiegen der nun existierenden Zeilen
+          # =================================================================
+          
+          # 1. Wir brechen die harten AVM-Konfliktsperren auf, die jetzt garantiert in der Datei stehen
+          sed -i 's/FREETZ_PACKAGE_DNSMASQ_DISABLE_DHCP=y/# FREETZ_PACKAGE_DNSMASQ_DISABLE_DHCP is not set/' .config
+          sed -i 's/FREETZ_PACKAGE_DNSMASQ_DISABLE_DNS=y/# FREETZ_PACKAGE_DNSMASQ_DISABLE_DNS is not set/' .config
+          
+          # 2. Wir schalten die automatische Deaktivierung im Freetz-Kern dauerhaft aus
+          sed -i 's/FREETZ_PACKAGE_DNSMASQ_AUTO_DISABLE=y/FREETZ_PACKAGE_DNSMASQ_AUTO_DISABLE=n/' .config
+          
+          # 3. Wir biegen die Hauptpakete von "not set" auf aktiv (=y) um
+          sed -i 's/# FREETZ_PACKAGE_DNSMASQ is not set/FREETZ_PACKAGE_DNSMASQ=y/' .config
+          sed -i 's/# FREETZ_PACKAGE_IPTABLES is not set/FREETZ_PACKAGE_IPTABLES=y/' .config
+          
+          # 4. Wir schalten die für NAT66 wichtigen Unteroptionen direkt in ihren Zeilen scharf
+          sed -i 's/# FREETZ_PACKAGE_DNSMASQ_WITH_DHCP is not set/FREETZ_PACKAGE_DNSMASQ_WITH_DHCP=y/' .config
+          sed -i 's/# FREETZ_PACKAGE_DNSMASQ_WITH_IPV6 is not set/FREETZ_PACKAGE_DNSMASQ_WITH_IPV6=y/' .config
+          sed -i 's/# FREETZ_PACKAGE_IPTABLES_MOD_IP6TABLES is not set/FREETZ_PACKAGE_IPTABLES_MOD_IP6TABLES=y/' .config
+          sed -i 's/# FREETZ_PACKAGE_IPTABLES_MOD_CONNTRACK_EXTRA is not set/FREETZ_PACKAGE_IPTABLES_MOD_CONNTRACK_EXTRA=y/' .config
+          sed -i 's/# FREETZ_PACKAGE_IPTABLES_MOD_NAT_EXTRA is not set/FREETZ_PACKAGE_IPTABLES_MOD_NAT_EXTRA=y/' .config
+          
+          # 5. Wir schalten die zwingenden Shared Libraries für den Compiler direkt in ihren Zeilen scharf
+          sed -i 's/# FREETZ_LIB_libusb0 is not set/FREETZ_LIB_libusb0=y/' .config
+          sed -i 's/# FREETZ_LIB_libusb1 is not set/FREETZ_LIB_libusb1=y/' .config
+          sed -i 's/# FREETZ_LIB_libcrypto is not set/FREETZ_LIB_libcrypto=y/' .config
+          sed -i 's/# FREETZ_OPENSSL_VERSION_35 is not set/FREETZ_OPENSSL_VERSION_35=y/' .config
 
-          # 3. Kernel-Optionen für NAT66 sauber injizieren and Altlasten entfernen
+          # =================================================================
+          # STUFE 3: Kernel-Templates impfen & Finaler Abhängigkeitsabgleich
+          # =================================================================
           find kernel/config/ -type f -name "*.config" | while read -r config_file; do
             sed -i '/CONFIG_IP6_NF_/d' "$config_file"
             sed -i '/CONFIG_NF_CONNTRACK_IPV6/d' "$config_file"
@@ -67,32 +104,7 @@ jobs:
             echo "CONFIG_NF_CONNTRACK_IPV6=m" >> "$config_file"
           done
           
-          # Erster Durchlauf: Generiert das saubere Grundgerüst inklusive der neuen Kernel-Bäume
-          make olddefconfig
-          
-          # 4. DIE STRUKTURELLE LÖSUNG (In-Place Ersetzung per sed)
-          # Wir hängen nichts mehr hinten an, sondern biegen die erzeugten Konfliktsperren 
-          # direkt in ihren Zeilen um. Das verhindert die "override reassigning"-Warnungen!
-          sed -i 's/# FREETZ_PACKAGE_DNSMASQ is not set/FREETZ_PACKAGE_DNSMASQ=y/' .config
-          sed -i 's/FREETZ_PACKAGE_DNSMASQ_DISABLE_DHCP=y/# FREETZ_PACKAGE_DNSMASQ_DISABLE_DHCP is not set/' .config
-          sed -i 's/FREETZ_PACKAGE_DNSMASQ_DISABLE_DNS=y/# FREETZ_PACKAGE_DNSMASQ_DISABLE_DNS is not set/' .config
-          
-          # iptables-Basis von "not set" auf aktiv (=y) umbiegen
-          sed -i 's/# FREETZ_PACKAGE_IPTABLES is not set/FREETZ_PACKAGE_IPTABLES=y/' .config
-          
-          # 5. Gewünschte Unteroptionen und Bibliotheken direkt aktivieren
-          sed -i 's/# FREETZ_PACKAGE_DNSMASQ_WITH_DHCP is not set/FREETZ_PACKAGE_DNSMASQ_WITH_DHCP=y/' .config
-          sed -i 's/# FREETZ_PACKAGE_DNSMASQ_WITH_IPV6 is not set/FREETZ_PACKAGE_DNSMASQ_WITH_IPV6=y/' .config
-          sed -i 's/# FREETZ_PACKAGE_IPTABLES_MOD_IP6TABLES is not set/FREETZ_PACKAGE_IPTABLES_MOD_IP6TABLES=y/' .config
-          sed -i 's/# FREETZ_PACKAGE_IPTABLES_MOD_CONNTRACK_EXTRA is not set/FREETZ_PACKAGE_IPTABLES_MOD_CONNTRACK_EXTRA=y/' .config
-          sed -i 's/# FREETZ_PACKAGE_IPTABLES_MOD_NAT_EXTRA is not set/FREETZ_PACKAGE_IPTABLES_MOD_NAT_EXTRA=y/' .config
-          
-          sed -i 's/# FREETZ_LIB_libusb0 is not set/FREETZ_LIB_libusb0=y/' .config
-          sed -i 's/# FREETZ_LIB_libusb1 is not set/FREETZ_LIB_libusb1=y/' .config
-          sed -i 's/# FREETZ_LIB_libcrypto is not set/FREETZ_LIB_libcrypto=y/' .config
-          sed -i 's/# FREETZ_OPENSSL_VERSION_35 is not set/FREETZ_OPENSSL_VERSION_35=y/' .config
-
-          # Zweiter Durchlauf: Validiert die präzise ersetzten Daten final ohne Konflikte
+          # Zweiter Durchlauf: Validiert die manipulierten Daten final und zieht Unter-Abhängigkeiten nach
           make olddefconfig
           
           # 6. Kompakte Bildschirmausgabe zur Kontrolle
