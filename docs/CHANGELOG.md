@@ -147,12 +147,12 @@ Latest changes
     * radvd 1.9.3/2.21
     * rsync 3.4.1/3.4.4
     * sslh 2.2.4/2.3.1
-    * Stunnel 5.79
+    * Stunnel 5.80
     * SQLite 3.40.1/3.53.4
     * tinc 1.0.37/1.1pre18
     * Tinyproxy 1.11.3
     * tmux 3.7b
-    * Tor 0.4.8.25
+    * Tor 0.4.9.11
     * Transmission 3.00/4.1.3
     * Tree 1.8.0/2.3.2
     * Unbound 1.26.0
