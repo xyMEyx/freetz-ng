@@ -39,6 +39,7 @@ jobs:
         run: |
           mkdir -p images
           cat << 'EOF' > .config
+          # FREETZ_TYPE_7690 is not set
           FREETZ_TYPE_7490=y
           FREETZ_TYPE_LANG_DE=y
           FREETZ_TYPE_FIRMWARE_07_5X=y
