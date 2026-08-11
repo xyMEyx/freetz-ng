@@ -38,7 +38,7 @@ jobs:
       - name: Eigene .config einspielen
         run: |
           mkdir -p images
-          echo "${{ secrets.ACTIONS_FREETZ_7490 }}" > .config
+          echo "${{ vars.CONFIG_7490 }}" > .config
           make dirclean
           make oldconfig
 
