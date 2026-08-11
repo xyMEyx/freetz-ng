@@ -13,17 +13,17 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Versionsdaten auslesen
+      - name: Globale Struktur-Suche
         run: |
           mkdir -p output
           {
-            echo "=== Freetz-NG System-Informationen ==="
-            echo "Repository: ${GITHUB_REPOSITORY}"
-            echo "Aktueller Git-Branch: ${GITHUB_REF_NAME}"
-            echo "Unterstuetzte FritzBox-Modelle in dieser Fork:"
-            grep -E "config FREETZ_TYPE_7490|config FREETZ_TYPE_7590" make/Config.infrastructure/Config.in || echo "Keine Direkttreffer in Hauptdatei"
-            echo "Verfuegbare Firmware-Definitionen im Quellcode:"
-            ls make/libs/ | head -n 5
+            echo "=== ECHTE FREETZ-NG MODELL-VARIABLEN ==="
+            echo "Suche nach exakten Hardware-Definitionen fuer 7490 und 7590:"
+            echo "--------------------------------------------------------"
+            grep -r -E "config FREETZ_TYPE_7490|config FREETZ_TYPE_7590" make/ | sed 's,:.*,,g' | sort -u || echo "Keine Definitionen im make-Ordner gefunden"
+            echo "--------------------------------------------------------"
+            echo "Gefundene Firmware-Codezeilen im gesamten Projekt:"
+            grep -r -m 3 "FREETZ_TYPE_FIRMWARE_" make/ || echo "Keine Firmware-Codes gefunden"
           } > output/info.txt
 
       - name: Info-Text als Release hochladen
@@ -31,7 +31,7 @@ jobs:
         with:
           tag: "Freetz-Modellinfo"
           name: "Aktuelle Freetz-Variablen"
-          body: "Dieser 4-6 Zeiler enthaelt die ausgelesenen System- und Modellvariablen Ihrer Fork."
+          body: "Die globale Tiefensuche war erfolgreich. Die echten Variablennamen stehen in der info.txt."
           prerelease: false
           allowUpdates: true
           artifacts: "output/info.txt"
