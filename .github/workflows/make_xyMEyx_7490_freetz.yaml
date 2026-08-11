@@ -57,7 +57,10 @@ jobs:
           FREETZ_MODIFY_DSL_SETTINGS=y
           EOF
           make dirclean
-          make olddefconfig
+          ./tools/freetz_config info .config
+          yes "" | make oldconfig
+
+
 
 
       - name: Firmware kompilieren
