@@ -47,7 +47,8 @@ jobs:
           # =================================================================
           # STUFE 1: Hardware-Basis und primäre Türöffner schreiben
           # =================================================================
-          echo "FREETZ_USER_LEVEL_EXPERT=y" > .config
+          # echo "FREETZ_USER_LEVEL_EXPERT=y" > .config
+          echo "FREETZ_USER_LEVEL_DEVELOPER=y" > .config
           echo "FREETZ_SERIES_4=y" >> .config
           echo "FREETZ_TYPE_7490=y" >> .config
           echo "FREETZ_TARGET_IPV6_SUPPORT=y" >> .config
