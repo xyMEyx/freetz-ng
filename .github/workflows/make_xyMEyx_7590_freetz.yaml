@@ -47,8 +47,7 @@ jobs:
           # =================================================================
           # STUFE 1: Hardware-Basis und primäre Türöffner schreiben
           # =================================================================
-          # echo "FREETZ_USER_LEVEL_EXPERT=y" > .config
-          echo "FREETZ_USER_LEVEL_DEVELOPER=y" > .config
+          echo "FREETZ_USER_LEVEL_EXPERT=y" > .config
           echo "FREETZ_SERIES_4=y" >> .config
           echo "FREETZ_TYPE_7490=y" >> .config
           echo "FREETZ_TARGET_IPV6_SUPPORT=y" >> .config
@@ -92,6 +91,9 @@ jobs:
               echo "CONFIG_IP6_NF_NAT=m" >> "$config_file"
               echo "CONFIG_IP6_NF_TARGET_MASQUERADE=m" >> "$config_file"
               echo "CONFIG_NF_CONNTRACK_IPV6=m" >> "$config_file"
+              # Ausgabe der Datei
+              readlink -f "$config_file"
+              cat "$config_file"
             fi
           done
           
@@ -99,6 +101,9 @@ jobs:
           # Da DNSMASQ_NATIVE=y von Anfang an gesetzt ist, darf olddefconfig die 
           # Sperren DISABLE_DHCP und DISABLE_DNS gar nicht erst generieren!
           make olddefconfig
+          
+          # Ausgabe der gesamten .config
+          cat ./.config
           
           # 6. Kompakte Bildschirmausgabe zur Kontrolle
           echo -e "\n================ KOPPIEREN FUER DEN CHAT AB HIER ================"
